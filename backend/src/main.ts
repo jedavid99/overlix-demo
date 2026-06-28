@@ -69,8 +69,9 @@ async function bootstrap() {
 
   if (isProduction) {
     logger.log(`Application is running in production mode`);
-    logger.log(`API endpoint: https://${configService.get<string>('RAILWAY_PUBLIC_DOMAIN') || 'https://overlix-demo-backend-production.up.railway.app/'}/${apiPrefix}`);
-    logger.log(`Health check: https://${configService.get<string>('RAILWAY_PUBLIC_DOMAIN') || 'https://overlix-demo-backend-production.up.railway.app/'}/${apiPrefix}/health`);
+    const domain = configService.get<string>('RAILWAY_PUBLIC_DOMAIN') || 'overlix-demo-backend-production.up.railway.app';
+    logger.log(`API endpoint: https://${domain}/${apiPrefix}`);
+    logger.log(`Health check: https://${domain}/${apiPrefix}/health`);
   } else {
     logger.log(`Application is running in development mode`);
     logger.log(`API endpoint: http://localhost:${port}/${apiPrefix}`);
