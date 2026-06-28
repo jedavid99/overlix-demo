@@ -1,4 +1,5 @@
 import api from './api';
+import { logger } from '@/utils/logger';
 import { Client, ClientCreate, ClientUpdate, ClientFilters, PaginatedResponse, ClientPurchase } from '@/types/client.types';
 
 export const clientService = {

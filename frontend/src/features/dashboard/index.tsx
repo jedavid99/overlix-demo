@@ -126,14 +126,9 @@ export default function Dashboard() {
     try {
       const response = await repairService.list({ limit: 100 }) as any
       
-      // Extract repairs array from response
-      const repairsArray = response?.data?.data?.reparaciones ||
-                         response?.data?.reparaciones ||
-                         response?.reparaciones ||
-                         response?.data?.data?.data ||
-                         response?.data?.data ||
-                         response?.data ||
-                         [];
+      // Backend usa TransformInterceptor: { data: {...}, statusCode, timestamp, path }
+      // Los datos reales están en response.data.data
+      const repairsArray = response?.data?.data?.reparaciones || response?.data?.data || [];
       
       setRepairs(Array.isArray(repairsArray) ? repairsArray : [])
       

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { stockService } from '@/services/stockService';
 import { StockItem, StockItemCreate, StockItemUpdate, StockFilters, PaginatedResponse, StockAdjustment, StockMovement } from '@/types/stock.types';
+import { useLoading } from '@/contexts/LoadingContext';
 
 export const useStock = (filters?: StockFilters) => {
   const [data, setData] = useState<PaginatedResponse<StockItem> | null>(null);
@@ -56,9 +57,12 @@ export const useStockItem = (id: string) => {
 export const useStockMutations = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { setLoading: setGlobalLoading, setMessage: setGlobalMessage } = useLoading();
 
   const createStockItem = async (data: StockItemCreate): Promise<StockItem | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Creando item de stock...');
     setError(null);
     try {
       const response = await stockService.create(data);
@@ -68,11 +72,14 @@ export const useStockMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const updateStockItem = async (id: string, data: StockItemUpdate): Promise<StockItem | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Actualizando item de stock...');
     setError(null);
     try {
       const response = await stockService.update(id, data);
@@ -82,11 +89,14 @@ export const useStockMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const deleteStockItem = async (id: string): Promise<boolean> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Eliminando item de stock...');
     setError(null);
     try {
       await stockService.delete(id);
@@ -96,11 +106,14 @@ export const useStockMutations = () => {
       return false;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const adjustStock = async (data: StockAdjustment): Promise<StockItem | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Ajustando stock...');
     setError(null);
     try {
       const response = await stockService.adjust(data);
@@ -110,11 +123,14 @@ export const useStockMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const activateStockItem = async (id: string): Promise<StockItem | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Activando item de stock...');
     setError(null);
     try {
       const response = await stockService.activate(id);
@@ -124,11 +140,14 @@ export const useStockMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const deactivateStockItem = async (id: string): Promise<StockItem | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Desactivando item de stock...');
     setError(null);
     try {
       const response = await stockService.deactivate(id);
@@ -138,6 +157,7 @@ export const useStockMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 

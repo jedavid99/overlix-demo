@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { businessInfoService } from '@/services/businessInfoService';
 import { BusinessInfo, BusinessInfoUpdate } from '@/types/businessInfo.types';
 import { toast } from '@/hooks/use-toast';
+import { useLoading } from '@/contexts/LoadingContext';
 
 export const useBusinessInfo = () => {
   const [data, setData] = useState<BusinessInfo | null>(null);
@@ -36,9 +37,12 @@ export const useBusinessInfo = () => {
 export const useBusinessInfoMutations = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { setLoading: setGlobalLoading, setMessage: setGlobalMessage } = useLoading();
 
   const updateBusinessInfo = async (data: BusinessInfoUpdate): Promise<BusinessInfo | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Actualizando información de la empresa...');
     setError(null);
     try {
       const response = await businessInfoService.update(data);
@@ -57,11 +61,14 @@ export const useBusinessInfoMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const updateLogo = async (logoUrl: string): Promise<{ logo_url: string } | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Actualizando logo...');
     setError(null);
     try {
       const response = await businessInfoService.updateLogo(logoUrl);
@@ -80,6 +87,7 @@ export const useBusinessInfoMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 

@@ -11,9 +11,10 @@ import { Button } from '../../shared/components/ui/button';
 import { Input } from '../../shared/components/ui/input';
 import { Label } from '../../shared/components/ui/label';
 import logo from '/ovelix-claro.png';
-// Admin credentials (you should change these in production)
-const ADMIN_EMAIL = 'admin@overlix.com';
-const ADMIN_PASSWORD = 'admin123';
+
+// Admin credentials from environment variables (more secure)
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || '';
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
 export default function AdminLogin() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -25,6 +26,14 @@ export default function AdminLogin() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    
+    // Check if environment variables are configured
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+      setError('Configuración de administrador no disponible. Contacte al soporte técnico.');
+      setIsLoading(false);
+      return;
+    }
+    
     // Simulate API call delay
     setTimeout(() => {
       if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {

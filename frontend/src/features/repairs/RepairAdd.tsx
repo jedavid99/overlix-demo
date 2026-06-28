@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, ArrowLeft, User, Check, X, Loader2 } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { clientService } from '@/services/clientService'
 import { repairService } from '@/services/repairService'
 import { Client } from '@/types/client.types'
 import { RepairCreate } from '@/types/repair.types'
-import { toast } from '@/hooks/use-toast'
+import { logger } from '@/utils/logger';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Badge } from '@/shared/components/ui/badge'
 import { Skeleton } from '@/shared/components/ui/skeleton'
+import { repairCreateSchema, RepairCreateFormData } from '@/validations/repair.validation'
 
 export default function RepairAdd() {
   const navigate = useNavigate()
@@ -25,16 +29,26 @@ export default function RepairAdd() {
   const [searchResults, setSearchResults] = useState<Client[]>([])
   const [searching, setSearching] = useState(false)
   
-  const [formData, setFormData] = useState({
-    dispositivo: '',
-    marca: '',
-    modelo: '',
-    problema_reportado: '',
-    diagnosis: '',
-    prioridad: 'media' as 'baja' | 'media' | 'alta' | 'urgente',
-    fecha_ingreso: new Date().toISOString().split('T')[0],
-    notas: '',
-    tecnico_asignado_id: ''
+  // React Hook Form con Zod
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch
+  } = useForm<RepairCreateFormData>({
+    resolver: zodResolver(repairCreateSchema),
+    defaultValues: {
+      dispositivo: '',
+      marca: '',
+      modelo: '',
+      problema_reportado: '',
+      diagnosis: '',
+      prioridad: 'medium',
+      fecha_ingreso: new Date().toISOString().split('T')[0],
+      notas: '',
+      tecnico_asignado_id: ''
+    }
   })
 
   // Cargar último cliente al montar
@@ -42,8 +56,10 @@ export default function RepairAdd() {
     const fetchLastClient = async () => {
       try {
         const response = await clientService.list({ limit: 1, sort: 'created_at:desc' })
-        if (response?.data?.length > 0) {
-          setLastClient(response.data[0])
+        // Backend usa TransformInterceptor: { data: {...}, statusCode, timestamp, path }
+        const clients = response?.data?.data?.clientes || response?.data?.data || []
+        if (clients.length > 0) {
+          setLastClient(clients[0])
         }
       } catch (error) {
         console.error('Error al cargar último cliente:', error)
@@ -61,7 +77,8 @@ export default function RepairAdd() {
         setSearching(true)
         try {
           const response = await clientService.list({ search: searchQuery, limit: 10 })
-          setSearchResults(response?.data || [])
+          // Backend usa TransformInterceptor: { data: {...}, statusCode, timestamp, path }
+          setSearchResults(response?.data?.data?.clientes || response?.data?.data || [])
         } catch (error) {
           console.error('Error en búsqueda:', error)
           setSearchResults([])
@@ -93,15 +110,8 @@ export default function RepairAdd() {
     setSearchQuery(e.target.value)
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    // Validaciones
+  const onSubmit = async (data: RepairCreateFormData) => {
+    // Validación de cliente seleccionado
     if (!selectedClient) {
       toast({
         title: 'Error de validación',
@@ -111,62 +121,32 @@ export default function RepairAdd() {
       return
     }
 
-    if (formData.dispositivo.length < 3) {
-      toast({
-        title: 'Error de validación',
-        description: 'El dispositivo debe tener al menos 3 caracteres',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    if (formData.problema_reportado.length < 5) {
-      toast({
-        title: 'Error de validación',
-        description: 'El problema reportado debe tener al menos 5 caracteres',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    if (!formData.fecha_ingreso) {
-      toast({
-        title: 'Error de validación',
-        description: 'La fecha de ingreso es requerida',
-        variant: 'destructive'
-      })
-      return
-    }
-
     setSubmitting(true)
 
-    const payload = {
+    const payload: RepairCreate = {
       cliente_id: selectedClient.id,
-      dispositivo: formData.dispositivo,
-      marca: formData.marca || undefined,
-      modelo: formData.modelo || undefined,
-      problema_reportado: formData.problema_reportado,
-      diagnosis: formData.diagnosis || undefined,
-      prioridad: formData.prioridad,
-      fecha_ingreso: formData.fecha_ingreso,
-      tecnico_asignado_id: formData.tecnico_asignado_id || undefined,
-      notas: formData.notas || undefined
+      dispositivo: data.dispositivo,
+      marca: data.marca || undefined,
+      modelo: data.modelo || undefined,
+      problema_reportado: data.problema_reportado,
+      diagnosis: data.diagnosis || undefined,
+      prioridad: data.prioridad,
+      fecha_ingreso: data.fecha_ingreso,
+      tecnico_asignado_id: data.tecnico_asignado_id || undefined,
+      notas: data.notas || undefined
     }
 
     try {
-      toast.promise(
-        repairService.create(payload),
-        {
-          loading: 'Guardando reparación...',
-          success: '¡Reparación registrada correctamente!',
-          error: (err: any) => err?.response?.data?.message || 'Error al guardar la reparación'
-        }
-      )
-      
       const result = await repairService.create(payload)
+      
+      toast({
+        title: 'Éxito',
+        description: '¡Reparación registrada correctamente!',
+      })
+      
       navigate(`/reparaciones/${result.id}`)
     } catch (error) {
-      console.error('Error al crear reparación:', error)
+      logger.error('Error al crear reparación:', error)
     } finally {
       setSubmitting(false)
     }
@@ -347,27 +327,25 @@ export default function RepairAdd() {
               <CardTitle className="text-lg">Datos de la reparación</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="dispositivo">Dispositivo *</Label>
                     <Input
                       id="dispositivo"
-                      name="dispositivo"
-                      value={formData.dispositivo}
-                      onChange={handleInputChange}
+                      {...register('dispositivo')}
                       placeholder="ej. iPhone 13, Samsung Galaxy..."
-                      required
                     />
+                    {errors.dispositivo && (
+                      <p className="text-sm text-destructive">{errors.dispositivo.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="marca">Marca</Label>
                     <Input
                       id="marca"
-                      name="marca"
-                      value={formData.marca}
-                      onChange={handleInputChange}
+                      {...register('marca')}
                       placeholder="ej. Apple, Samsung..."
                     />
                   </div>
@@ -376,9 +354,7 @@ export default function RepairAdd() {
                     <Label htmlFor="modelo">Modelo</Label>
                     <Input
                       id="modelo"
-                      name="modelo"
-                      value={formData.modelo}
-                      onChange={handleInputChange}
+                      {...register('modelo')}
                       placeholder="ej. A2633, S21..."
                     />
                   </div>
@@ -387,15 +363,13 @@ export default function RepairAdd() {
                     <Label htmlFor="prioridad">Prioridad</Label>
                     <select
                       id="prioridad"
-                      name="prioridad"
-                      value={formData.prioridad}
-                      onChange={handleInputChange}
+                      {...register('prioridad')}
                       className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                     >
-                      <option value="baja">Baja</option>
-                      <option value="media">Media</option>
-                      <option value="alta">Alta</option>
-                      <option value="urgente">Urgente</option>
+                      <option value="low">Baja</option>
+                      <option value="medium">Media</option>
+                      <option value="high">Alta</option>
+                      <option value="critical">Urgente</option>
                     </select>
                   </div>
 
@@ -403,21 +377,19 @@ export default function RepairAdd() {
                     <Label htmlFor="fecha_ingreso">Fecha de ingreso *</Label>
                     <Input
                       id="fecha_ingreso"
-                      name="fecha_ingreso"
                       type="date"
-                      value={formData.fecha_ingreso}
-                      onChange={handleInputChange}
-                      required
+                      {...register('fecha_ingreso')}
                     />
+                    {errors.fecha_ingreso && (
+                      <p className="text-sm text-destructive">{errors.fecha_ingreso.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="tecnico_asignado_id">Técnico asignado</Label>
                     <Input
                       id="tecnico_asignado_id"
-                      name="tecnico_asignado_id"
-                      value={formData.tecnico_asignado_id}
-                      onChange={handleInputChange}
+                      {...register('tecnico_asignado_id')}
                       placeholder="ID del técnico (opcional)"
                     />
                   </div>
@@ -427,23 +399,21 @@ export default function RepairAdd() {
                   <Label htmlFor="problema_reportado">Problema reportado *</Label>
                   <textarea
                     id="problema_reportado"
-                    name="problema_reportado"
-                    value={formData.problema_reportado}
-                    onChange={handleInputChange}
+                    {...register('problema_reportado')}
                     placeholder="Describe el problema del dispositivo..."
                     rows={3}
                     className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-                    required
                   />
+                  {errors.problema_reportado && (
+                    <p className="text-sm text-destructive">{errors.problema_reportado.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="diagnosis">Diagnosis</Label>
                   <textarea
                     id="diagnosis"
-                    name="diagnosis"
-                    value={formData.diagnosis}
-                    onChange={handleInputChange}
+                    {...register('diagnosis')}
                     placeholder="Diagnosis técnica del problema..."
                     rows={3}
                     className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring resize-none"
@@ -454,13 +424,14 @@ export default function RepairAdd() {
                   <Label htmlFor="notas">Notas adicionales</Label>
                   <textarea
                     id="notas"
-                    name="notas"
-                    value={formData.notas}
-                    onChange={handleInputChange}
+                    {...register('notas')}
                     placeholder="Notas adicionales sobre la reparación..."
                     rows={2}
                     className="w-full px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                   />
+                  {errors.notas && (
+                    <p className="text-sm text-destructive">{errors.notas.message}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-4 border-t">
@@ -468,17 +439,17 @@ export default function RepairAdd() {
                     type="button"
                     variant="outline"
                     onClick={handleCancel}
-                    disabled={submitting}
+                    disabled={submitting || isSubmitting}
                   >
                     Cancelar
                   </Button>
                   <Button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || isSubmitting}
                   >
-                    {submitting ? (
+                    {submitting || isSubmitting ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Guardando...
                       </>
                     ) : (

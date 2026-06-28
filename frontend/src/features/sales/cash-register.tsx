@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Download, FileText, Package, TrendingUp, DollarSign, Lock, Save } from 'lucide-react'
@@ -8,8 +8,15 @@ import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Badge } from '@/shared/components/ui/badge'
+import { useCashClosingMutations, useCashClosingByDate } from '@/hooks/useCashClosing'
+import { CashClosingData } from '@/types/cashClosing.types'
+import { logger } from '@/utils/logger'
 export default function CajaDiaria() {
   const navigate = useNavigate()
+  const { createCashClosing, updateCashClosing } = useCashClosingMutations()
+  const today = new Date().toISOString().split('T')[0]
+  const { data: existingClosing } = useCashClosingByDate(today)
+  
   const [cash, setCash] = useState({
     bills100: '',
     bills50: '',
@@ -20,8 +27,27 @@ export default function CajaDiaria() {
     other: '',
     notes: '',
   })
-  const expectedBalance = 1695.50
-  const transactions = 42
+  
+  const [expectedBalance, setExpectedBalance] = useState(1695.50)
+  const [transactions, setTransactions] = useState(42)
+  
+  // Load existing closing data if available
+  useEffect(() => {
+    if (existingClosing) {
+      setCash({
+        bills100: existingClosing.bills_count.bills100.toString(),
+        bills50: existingClosing.bills_count.bills50.toString(),
+        bills20: existingClosing.bills_count.bills20.toString(),
+        bills10: existingClosing.bills_count.bills10.toString(),
+        bills5: existingClosing.bills_count.bills5.toString(),
+        bills1: existingClosing.bills_count.bills1.toString(),
+        other: existingClosing.bills_count.other.toString(),
+        notes: existingClosing.notes || '',
+      })
+      setExpectedBalance(existingClosing.expected_balance)
+      setTransactions(existingClosing.transactions_count)
+    }
+  }, [existingClosing])
   const calculateActualTotal = () => {
     const b100 = (parseFloat(cash.bills100) || 0) * 100
     const b50 = (parseFloat(cash.bills50) || 0) * 50
@@ -38,9 +64,68 @@ export default function CajaDiaria() {
   const handleChange = (field: string, value: string) => {
     setCash(prev => ({ ...prev, [field]: value }))
   }
-  const handleFinalize = () => {
-    // TODO: persist closing data
-    alert(`Cash closing finalized. Discrepancy: $${discrepancy}`)
+  
+  const handleSaveProgress = async () => {
+    const closingData: CashClosingData = {
+      date: today,
+      store_id: '104',
+      cashier: 'Alex Thompson',
+      expected_balance: expectedBalance,
+      actual_balance: actualTotal,
+      discrepancy: parseFloat(discrepancy),
+      transactions_count: transactions,
+      bills_count: {
+        bills100: parseFloat(cash.bills100) || 0,
+        bills50: parseFloat(cash.bills50) || 0,
+        bills20: parseFloat(cash.bills20) || 0,
+        bills10: parseFloat(cash.bills10) || 0,
+        bills5: parseFloat(cash.bills5) || 0,
+        bills1: parseFloat(cash.bills1) || 0,
+        other: parseFloat(cash.other) || 0,
+      },
+      notes: cash.notes,
+    }
+    
+    logger.log('Guardando progreso de cierre de caja:', closingData)
+    
+    if (existingClosing?.id) {
+      await updateCashClosing(existingClosing.id, closingData)
+    } else {
+      await createCashClosing(closingData)
+    }
+  }
+  
+  const handleFinalize = async () => {
+    const closingData: CashClosingData = {
+      date: today,
+      store_id: '104',
+      cashier: 'Alex Thompson',
+      expected_balance: expectedBalance,
+      actual_balance: actualTotal,
+      discrepancy: parseFloat(discrepancy),
+      transactions_count: transactions,
+      bills_count: {
+        bills100: parseFloat(cash.bills100) || 0,
+        bills50: parseFloat(cash.bills50) || 0,
+        bills20: parseFloat(cash.bills20) || 0,
+        bills10: parseFloat(cash.bills10) || 0,
+        bills5: parseFloat(cash.bills5) || 0,
+        bills1: parseFloat(cash.bills1) || 0,
+        other: parseFloat(cash.other) || 0,
+      },
+      notes: cash.notes,
+    }
+    
+    logger.log('Finalizando cierre de caja:', closingData)
+    
+    const result = existingClosing?.id 
+      ? await updateCashClosing(existingClosing.id, closingData)
+      : await createCashClosing(closingData)
+    
+    if (result) {
+      alert(`Cierre de caja finalizado. Diferencia: $${discrepancy}`)
+      navigate('/reports')
+    }
   }
   return (
     <motion.div
@@ -239,7 +324,7 @@ export default function CajaDiaria() {
             </div>
           </div>
           <div className="flex items-center gap-4 w-full md:w-auto">
-            <Button variant="outline" size="lg">
+            <Button onClick={handleSaveProgress} variant="outline" size="lg">
               <Save size={18} className="mr-2" />
               Guardar progreso
             </Button>

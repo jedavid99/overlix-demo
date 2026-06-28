@@ -1,20 +1,21 @@
 import api from './api';
+import { logger } from '@/utils/logger';
 
 export const login = async (email: string, password: string, codigoEmpresa: string) => {
   const payload = {
     email,
-    contraseña: password,
+    password: password,
     codigo_empresa: codigoEmpresa
   };
 
-  console.log('auth.service.login payload:', payload);
+  logger.log('auth.service.login payload:', payload);
 
   try {
     const response = await api.post('/auth/login', payload);
-    console.log('auth.service.login response:', response.data);
+    logger.log('auth.service.login response:', response.data);
     return response.data;
   } catch (error: any) {
-    console.error('auth.service.login error:', error);
+    logger.error('auth.service.login error:', error);
     throw error;
   }
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, Cloud, Clock, Bell, Key, Smartphone, Laptop, Monitor, Gamepad2, Edit, Trash2, ChevronDown, Info, DollarSign, ChevronRight, Building2, AlertCircle, CheckCircle2, Ticket, Eye, RotateCcw, CreditCard, FileText } from 'lucide-react'
 import { MdContentCopy, MdDelete, MdLink, MdEdit, MdCalendarToday, MdEmail, MdBarChart } from 'react-icons/md'
 import PDFConfig from './PDFConfig'
@@ -42,13 +42,61 @@ function LeftNav({ current, onChange }: { current: string; onChange: (id: string
 export default function Settings() {
   const [section, setSection] = useState('general')
   const [isEditingBusiness, setIsEditingBusiness] = useState(false)
+  const [generalForm, setGeneralForm] = useState({
+    nombre_negocio: '',
+    direccion: '',
+    moneda: 'USD',
+    formato_fecha: 'DD/MM/YYYY',
+    zona_horaria: 'UTC-03:00'
+  })
   
   const { data: businessInfo, loading, error, refetch } = useBusinessInfo()
   const { updateBusinessInfo, loading: mutationLoading } = useBusinessInfoMutations()
   
-  // Función simulada para guardar cambios (conectar con API)
+  // Cargar datos del negocio en el formulario general
+  useEffect(() => {
+    if (businessInfo) {
+      setGeneralForm({
+        nombre_negocio: businessInfo.nombre_negocio || '',
+        direccion: businessInfo.direccion || '',
+        moneda: 'USD',
+        formato_fecha: 'DD/MM/YYYY',
+        zona_horaria: 'UTC-03:00'
+      })
+    }
+  }, [businessInfo])
+  
+  // Función para guardar cambios de la sección general
+  const handleGeneralSave = async () => {
+    try {
+      // Validaciones básicas
+      if (!generalForm.nombre_negocio.trim()) {
+        alert('El nombre del negocio es requerido')
+        return
+      }
+      
+      const result = await updateBusinessInfo({
+        nombre_negocio: generalForm.nombre_negocio,
+        direccion: generalForm.direccion
+      })
+      
+      if (result) {
+        refetch()
+        alert('Configuración general guardada correctamente')
+      }
+    } catch (error) {
+      console.error('Error al guardar configuración general:', error)
+      alert('Error al guardar la configuración')
+    }
+  }
+  
+  // Función para guardar otras secciones (placeholder)
   const handleSave = (sectionId: string) => {
-    alert(`Guardando cambios de la sección: ${sections.find(s => s.id === sectionId)?.label}`)
+    if (sectionId === 'general') {
+      handleGeneralSave()
+    } else {
+      alert(`La sección ${sections.find(s => s.id === sectionId)?.label} aún no está implementada`)
+    }
   }
 
   const handleBusinessEdit = async (data: any) => {
@@ -82,12 +130,24 @@ export default function Settings() {
                 <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Nombre del negocio</label>
-                      <input className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white" type="text" placeholder="Ej. Reparaciones Tech" />
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Nombre del negocio *</label>
+                      <input 
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white" 
+                        type="text" 
+                        placeholder="Ej. Reparaciones Tech"
+                        value={generalForm.nombre_negocio}
+                        onChange={(e) => setGeneralForm({...generalForm, nombre_negocio: e.target.value})}
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Dirección</label>
-                      <textarea className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white" rows={3} placeholder="Calle, ciudad, código postal, país" />
+                      <textarea 
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white" 
+                        rows={3} 
+                        placeholder="Calle, ciudad, código postal, país"
+                        value={generalForm.direccion}
+                        onChange={(e) => setGeneralForm({...generalForm, direccion: e.target.value})}
+                      />
                     </div>
                   </div>
                   <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 bg-slate-50 dark:bg-slate-800/50">
@@ -216,9 +276,10 @@ export default function Settings() {
               <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
                 <button
                   onClick={() => handleSave('general')}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20"
+                  disabled={mutationLoading}
+                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Guardar cambios
+                  {mutationLoading ? 'Guardando...' : 'Guardar cambios'}
                 </button>
               </div>
             </div>

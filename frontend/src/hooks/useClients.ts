@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/utils/logger';
 import { clientService } from '@/services/clientService';
 import { Client, ClientCreate, ClientUpdate, ClientFilters, PaginatedResponse, ClientPurchase } from '@/types/client.types';
+import { useLoading } from '@/contexts/LoadingContext';
 
 export const useClients = (filters?: ClientFilters) => {
   const [data, setData] = useState<PaginatedResponse<Client> | null>(null);
@@ -56,28 +58,34 @@ export const useClient = (id: string) => {
 export const useClientMutations = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { setLoading: setGlobalLoading, setMessage: setGlobalMessage } = useLoading();
 
   const createClient = async (data: ClientCreate): Promise<Client | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Creando cliente...');
     setError(null);
     try {
-      console.log('useClientMutations.createClient - Iniciando creación con datos:', data);
+      logger.log('useClientMutations.createClient - Iniciando creación con datos:', data);
       const response = await clientService.create(data);
-      console.log('useClientMutations.createClient - Cliente creado exitosamente:', response);
+      logger.log('useClientMutations.createClient - Cliente creado exitosamente:', response);
       return response;
     } catch (err: any) {
-      console.error('useClientMutations.createClient - Error completo:', err);
+      logger.error('useClientMutations.createClient - Error completo:', err);
       const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Error al crear cliente';
-      console.error('useClientMutations.createClient - Error message:', errorMessage);
+      logger.error('useClientMutations.createClient - Error message:', errorMessage);
       setError(errorMessage);
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const updateClient = async (id: string, data: ClientUpdate): Promise<Client | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Actualizando cliente...');
     setError(null);
     try {
       const response = await clientService.update(id, data);
@@ -87,11 +95,14 @@ export const useClientMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const deleteClient = async (id: string): Promise<boolean> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Eliminando cliente...');
     setError(null);
     try {
       await clientService.delete(id);
@@ -101,11 +112,14 @@ export const useClientMutations = () => {
       return false;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const activateClient = async (id: string): Promise<Client | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Activando cliente...');
     setError(null);
     try {
       const response = await clientService.activate(id);
@@ -115,11 +129,14 @@ export const useClientMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const deactivateClient = async (id: string): Promise<Client | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Desactivando cliente...');
     setError(null);
     try {
       const response = await clientService.deactivate(id);
@@ -129,6 +146,7 @@ export const useClientMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 

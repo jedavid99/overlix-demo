@@ -1,43 +1,43 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { User, MapPin, Phone, Mail, Hash, MessageCircle } from 'lucide-react'
 import { useClientMutations } from '@/hooks/useClients'
+import { logger } from '@/utils/logger';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { clientCreateSchema, ClientCreateFormData } from '@/validations/client.validation';
 
 export default function ClientAdd() {
   const navigate = useNavigate()
   const { createClient, loading, error } = useClientMutations()
-  const [form, setForm] = useState({
-    name: '', phoneCode: '+34', phone: '', email: '', dni: '', address: '', city: '', zip: '', notes: '', whatsapp: true,
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ClientCreateFormData>({
+    resolver: zodResolver(clientCreateSchema),
+    defaultValues: {
+      nombre_completo: '',
+      telefono: '',
+      email: '',
+      dni: '',
+      direccion: '',
+      ciudad: '',
+      provincia: '',
+      notas: '',
+    },
   })
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target as HTMLInputElement
-    const val = (type === 'checkbox') ? (e.target as HTMLInputElement).checked : value
-    setForm({ ...form, [name]: val })
-  }
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log('ClientAdd - Datos del formulario:', form)
+
+  const onSubmit = async (data: ClientCreateFormData) => {
+    logger.log('ClientAdd - Datos del formulario validados:', data)
     
-    // Mapear campos del formulario al formato del backend
-    const clientData = {
-      nombre_completo: form.name,
-      telefono: form.phone,
-      email: form.email || undefined,
-      dni: form.dni || undefined,
-      direccion: form.address || undefined,
-      ciudad: form.city || undefined,
-      provincia: form.city || undefined, // Usando city como provincia por ahora
-      notas: form.notes || undefined
-    }
-    
-    console.log('ClientAdd - Datos a enviar al backend:', clientData)
-    
-    const result = await createClient(clientData)
+    const result = await createClient(data)
     if (result) {
-      console.log('ClientAdd - Cliente creado exitosamente')
+      logger.log('ClientAdd - Cliente creado exitosamente')
       navigate('/clients')
     } else {
-      console.error('ClientAdd - Error al crear cliente:', error)
+      logger.error('ClientAdd - Error al crear cliente:', error)
     }
   }
   return (
@@ -50,7 +50,7 @@ export default function ClientAdd() {
           <h2 className="text-2xl font-semibold">Nuevo Registro de Cliente</h2>
         </div>
       </div>
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-6 border">
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-xl shadow p-6 border">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <section>
             <div className="flex items-center gap-2 mb-4">
@@ -59,9 +59,16 @@ export default function ClientAdd() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-2">Nombre Completo</label>
+                <label className="block text-sm text-gray-600 mb-2">Nombre Completo *</label>
                 <div className="relative">
-                  <input name="name" value={form.name} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg bg-gray-50" placeholder="Ej. Juan Pérez" />
+                  <input 
+                    {...register('nombre_completo')}
+                    className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${errors.nombre_completo ? 'border-red-500' : ''}`} 
+                    placeholder="Ej. Juan Pérez" 
+                  />
+                  {errors.nombre_completo && (
+                    <p className="text-red-500 text-xs mt-1">{errors.nombre_completo.message}</p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-3 items-end">
@@ -75,20 +82,39 @@ export default function ClientAdd() {
   
   {/* Campo de teléfono */}
   <div className="flex-1">
-    <label className="block text-sm text-gray-600 mb-2">Teléfono</label>
+    <label className="block text-sm text-gray-600 mb-2">Teléfono *</label>
     <input
-      name="phone"
-      value={form.phone}
-      onChange={handleChange}
-      className="w-full px-4 py-3 border rounded-lg bg-gray-50"
+      {...register('telefono')}
+      className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${errors.telefono ? 'border-red-500' : ''}`}
       placeholder="000 000 000"
     />
+    {errors.telefono && (
+      <p className="text-red-500 text-xs mt-1">{errors.telefono.message}</p>
+    )}
   </div>
 </div>
              
               <div>
-                <label className="block text-sm text-gray-600 mb-2">DNI </label>
-                <input name="dni" value={form.dni} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg bg-gray-50" placeholder="12345678X" />
+                <label className="block text-sm text-gray-600 mb-2">DNI</label>
+                <input 
+                  {...register('dni')}
+                  className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${errors.dni ? 'border-red-500' : ''}`} 
+                  placeholder="12345678X" 
+                />
+                {errors.dni && (
+                  <p className="text-red-500 text-xs mt-1">{errors.dni.message}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">Email</label>
+                <input 
+                  {...register('email')}
+                  className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${errors.email ? 'border-red-500' : ''}`} 
+                  placeholder="cliente@email.com" 
+                />
+                {errors.email && (
+                  <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+                )}
               </div>
             </div>
           </section>
@@ -100,16 +126,51 @@ export default function ClientAdd() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-600 mb-2">Calle / Dirección</label>
-                <input name="address" value={form.address} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg bg-gray-50" placeholder="Calle Principal 123" />
+                <input 
+                  {...register('direccion')}
+                  className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${errors.direccion ? 'border-red-500' : ''}`} 
+                  placeholder="Calle Principal 123" 
+                />
+                {errors.direccion && (
+                  <p className="text-red-500 text-xs mt-1">{errors.direccion.message}</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-2">Provicia</label>
-                  <input name="city" value={form.city} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg bg-gray-50" placeholder="Buenos Aires" />
+                  <label className="block text-sm text-gray-600 mb-2">Ciudad</label>
+                  <input 
+                    {...register('ciudad')}
+                    className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${errors.ciudad ? 'border-red-500' : ''}`} 
+                    placeholder="Buenos Aires" 
+                  />
+                  {errors.ciudad && (
+                    <p className="text-red-500 text-xs mt-1">{errors.ciudad.message}</p>
+                  )}
                 </div>
-                
+                <div>
+                  <label className="block text-sm text-gray-600 mb-2">Provincia</label>
+                  <input 
+                    {...register('provincia')}
+                    className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${errors.provincia ? 'border-red-500' : ''}`} 
+                    placeholder="Buenos Aires" 
+                  />
+                  {errors.provincia && (
+                    <p className="text-red-500 text-xs mt-1">{errors.provincia.message}</p>
+                  )}
+                </div>
               </div>
-              
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">Notas</label>
+                <textarea 
+                  {...register('notas')}
+                  className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${errors.notas ? 'border-red-500' : ''}`} 
+                  rows={3}
+                  placeholder="Notas adicionales..."
+                />
+                {errors.notas && (
+                  <p className="text-red-500 text-xs mt-1">{errors.notas.message}</p>
+                )}
+              </div>
             </div>
           </section>
         </div>
@@ -122,8 +183,8 @@ export default function ClientAdd() {
           
           <div className="mt-6 flex items-center justify-end gap-3">
             <button type="button" onClick={() => navigate('/clients')} className="px-4 py-2 border rounded">Cancelar</button>
-            <button type="submit" disabled={loading} className="px-4 py-2 bg-green-600 text-white rounded shadow disabled:opacity-50 disabled:cursor-not-allowed">
-              {loading ? 'Guardando...' : 'Registrar Cliente'}
+            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-green-600 text-white rounded shadow disabled:opacity-50 disabled:cursor-not-allowed">
+              {isSubmitting ? 'Guardando...' : 'Registrar Cliente'}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { repairService } from '@/services/repairService';
 import { Repair, RepairCreate, RepairUpdate, RepairFilters, PaginatedResponse, RepairStatusUpdate } from '@/types/repair.types';
+import { useLoading } from '@/contexts/LoadingContext';
 
 export const useRepairs = (filters?: RepairFilters) => {
   const [data, setData] = useState<PaginatedResponse<Repair> | null>(null);
@@ -56,9 +57,12 @@ export const useRepair = (id: string) => {
 export const useRepairMutations = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { setLoading: setGlobalLoading, setMessage: setGlobalMessage } = useLoading();
 
   const createRepair = async (data: RepairCreate): Promise<Repair | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Creando reparación...');
     setError(null);
     try {
       const response = await repairService.create(data);
@@ -68,11 +72,14 @@ export const useRepairMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const updateRepair = async (id: string, data: RepairUpdate): Promise<Repair | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Actualizando reparación...');
     setError(null);
     try {
       const response = await repairService.update(id, data);
@@ -82,11 +89,14 @@ export const useRepairMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const deleteRepair = async (id: string): Promise<boolean> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Eliminando reparación...');
     setError(null);
     try {
       await repairService.delete(id);
@@ -96,11 +106,14 @@ export const useRepairMutations = () => {
       return false;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const updateStatus = async (id: string, data: RepairStatusUpdate): Promise<Repair | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Actualizando estado...');
     setError(null);
     try {
       const response = await repairService.updateStatus(id, data);
@@ -110,11 +123,14 @@ export const useRepairMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const completeRepair = async (id: string, data?: { costo_final?: number; notas?: string }): Promise<Repair | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Completando reparación...');
     setError(null);
     try {
       const response = await repairService.complete(id, data);
@@ -124,11 +140,14 @@ export const useRepairMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const assignTechnician = async (id: string, tecnico_id: string): Promise<Repair | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Asignando técnico...');
     setError(null);
     try {
       const response = await repairService.assignTechnician(id, tecnico_id);
@@ -138,11 +157,14 @@ export const useRepairMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 
   const addPart = async (id: string, part: { repuesto_id: string; cantidad: number }): Promise<Repair | null> => {
     setLoading(true);
+    setGlobalLoading(true);
+    setGlobalMessage('Agregando repuesto...');
     setError(null);
     try {
       const response = await repairService.addPart(id, part);
@@ -152,6 +174,7 @@ export const useRepairMutations = () => {
       return null;
     } finally {
       setLoading(false);
+      setGlobalLoading(false);
     }
   };
 

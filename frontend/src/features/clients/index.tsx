@@ -48,11 +48,8 @@ export default function Clients() {
         
         // Extraer datos según la estructura real
         // Intenta varias posibilidades
-        let clientesArray = response?.data?.data?.clientes ||
-                           response?.data?.data?.data ||
-                           response?.data?.data ||
-                           response?.data ||
-                           response
+        // Backend usa TransformInterceptor: { data: {...}, statusCode, timestamp, path }
+        let clientesArray = response?.data?.data?.clientes || response?.data?.data || []
         
         if (!Array.isArray(clientesArray)) {
           console.error('No se encontró un array de clientes:', response)
