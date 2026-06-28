@@ -10,7 +10,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: '',        // este valor se enviará como "contraseña"
+    contraseña: '',        // este valor se enviará como "contraseña"
     codigoEmpresa: '',   // este valor se enviará como "codigo_empresa"
     rememberMe: false
   });
@@ -32,7 +32,7 @@ export default function Login() {
       // Llamamos al login del AuthContext
       await login(
         formData.email,
-        formData.password,
+        formData.contraseña,
         formData.codigoEmpresa
       );
       console.log('Login exitoso, navegando al dashboard');
@@ -161,7 +161,7 @@ export default function Login() {
                     name="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
-                    value={formData.password}
+                    value={formData.contraseña}
                     onChange={handleChange}
                     required
                   />
