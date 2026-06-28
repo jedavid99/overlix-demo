@@ -20,12 +20,16 @@ async function bootstrap() {
   app.setGlobalPrefix(apiPrefix);
 
   // Enable CORS
-  const allowedOrigins = [
+  const allowedOrigins: string[] = [
     'https://overlix-demo.vercel.app',
     'http://localhost:5173',
     'http://localhost:3000',
-    configService.get<string>('FRONTEND_URL'),
-  ].filter(Boolean);
+  ];
+
+  const frontendUrl = configService.get<string>('FRONTEND_URL');
+  if (frontendUrl && !allowedOrigins.includes(frontendUrl)) {
+    allowedOrigins.push(frontendUrl);
+  }
 
   app.enableCors({
     origin: allowedOrigins,
