@@ -157,9 +157,9 @@ export default function Login() {
                   </span>
                   <input
                     className="w-full pl-11 pr-4 py-3 bg-white border border-[#c2c6d6] rounded-xl text-sm placeholder-[#727785] focus:outline-none focus:ring-2 focus:ring-[#0058be]/20 focus:border-[#0058be] transition-all"
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
+                    id="contraseña"
+                    name="contraseña"
+                    type={showPassword ? 'text' : 'contraseña'}
                     placeholder="••••••••"
                     value={formData.contraseña}
                     onChange={handleChange}
