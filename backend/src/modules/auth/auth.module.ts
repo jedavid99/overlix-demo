@@ -3,7 +3,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './services/auth.service';
+import { ActivationCodesService } from './services/activation-codes.service';
 import { AuthController } from './controllers/auth.controller';
+import { ActivationCodesController } from './controllers/activation-codes.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { DatabaseModule } from '../../database/database.module';
 
@@ -22,8 +24,8 @@ import { DatabaseModule } from '../../database/database.module';
     }),
     DatabaseModule,
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  controllers: [AuthController, ActivationCodesController],
+  providers: [AuthService, ActivationCodesService, JwtStrategy],
+  exports: [AuthService, ActivationCodesService],
 })
 export class AuthModule {}

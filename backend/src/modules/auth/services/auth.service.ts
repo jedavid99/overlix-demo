@@ -8,6 +8,7 @@ import { LoginDto } from '../dto/login.dto';
 import { VerifyCompanyDto } from '../dto/verify-company.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import { AdminLoginDto } from '../dto/admin-login.dto';
 import { CurrentUserData } from '../../../common/decorators/current-user.decorator';
 
 @Injectable()
@@ -272,6 +273,85 @@ export class AuthService {
             empresa_id: user.empresa_id,
             empresa_nombre: user.nombre_empresa,
             permisos: user.permisos,
+          },
+        },
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async adminLogin(adminLoginDto: AdminLoginDto) {
+    const client = await this.pool.connect();
+
+    try {
+      // Find admin user by email (without company restriction)
+      const userResult = await client.query(
+        `SELECT u.id, u.email, u.contraseña, u.nombre_completo, u.estado, u.empresa_id, 
+                r.nombre as rol_nombre, r.permisos, c.nombre_empresa
+         FROM users u
+         JOIN roles r ON u.rol_id = r.id
+         LEFT JOIN companies c ON u.empresa_id = c.id
+         WHERE u.email = $1 AND r.nombre = 'admin'`,
+        [adminLoginDto.email],
+      );
+
+      if (userResult.rows.length === 0) {
+        throw new UnauthorizedException('Credenciales de admin inválidas');
+      }
+
+      const user = userResult.rows[0];
+
+      if (user.estado !== 'activo') {
+        throw new UnauthorizedException('Usuario admin inactivo');
+      }
+
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(adminLoginDto.password, user.contraseña);
+
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Credenciales de admin inválidas');
+      }
+
+      // Update last access
+      await client.query(
+        'UPDATE users SET ultimo_acceso = CURRENT_TIMESTAMP WHERE id = $1',
+        [user.id],
+      );
+
+      // Generate JWT tokens
+      const payload = {
+        sub: user.id,
+        email: user.email,
+        empresaId: user.empresa_id,
+        rol: user.rol_nombre,
+        permisos: user.permisos,
+        isAdmin: true,
+      };
+
+      const accessToken = this.jwtService.sign(payload, {
+        expiresIn: this.configService.get<string>('JWT_EXPIRES_IN') || '24h',
+      });
+
+      const refreshToken = this.jwtService.sign(payload, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '30d',
+      });
+
+      return {
+        success: true,
+        data: {
+          token: accessToken,
+          refreshToken,
+          usuario: {
+            id: user.id,
+            nombre_completo: user.nombre_completo,
+            email: user.email,
+            rol: user.rol_nombre,
+            empresa_id: user.empresa_id,
+            empresa_nombre: user.nombre_empresa || 'System Admin',
+            permisos: user.permisos,
+            isAdmin: true,
           },
         },
       };
