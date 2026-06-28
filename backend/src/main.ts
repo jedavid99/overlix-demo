@@ -20,19 +20,24 @@ async function bootstrap() {
   app.setGlobalPrefix(apiPrefix);
 
   // Enable CORS
-  const allowedOrigins: string[] = [
-    'https://overlix-demo.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:3000',
-  ];
-
-  const frontendUrl = configService.get<string>('FRONTEND_URL');
-  if (frontendUrl && !allowedOrigins.includes(frontendUrl)) {
-    allowedOrigins.push(frontendUrl);
-  }
-
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        'https://overlix-demo.vercel.app',
+        'http://localhost:5173',
+        'http://localhost:3000',
+        configService.get<string>('FRONTEND_URL'),
+      ].filter(Boolean) as string[];
+
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
