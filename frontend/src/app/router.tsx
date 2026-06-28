@@ -62,12 +62,14 @@ import PrivateRoute from '../shared/components/PrivateRoute'
 export function AppRouter() {
   return (
     <Routes>
+      {/* Ruta principal - Dashboard */}
+      <Route path="/" element={<PrivateRoute><AdminLayout><Dashboard /></AdminLayout></PrivateRoute>} />
       {/* Rutas públicas */}
-      <Route path="/" element={<PrivateRoute><Login /></PrivateRoute>} />
-      <Route path="/register" element={<PrivateRoute><Register /></PrivateRoute>} />
-      <Route path="/admin/login" element={<PrivateRoute><AdminLogin /></PrivateRoute>} />
-      <Route path="/admin/generate-codes" element={<PrivateRoute><SimpleCodeGenerator /></PrivateRoute>} />
-      <Route path="/admin/activation-codes" element={<PrivateRoute><AdminActivationCodes /></PrivateRoute>} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/generate-codes" element={<SimpleCodeGenerator />} />
+      <Route path="/admin/activation-codes" element={<AdminActivationCodes />} />
       {/* Rutas protegidas */}
       <Route path="/dashboard" element={<PrivateRoute><AdminLayout><Dashboard /></AdminLayout></PrivateRoute>} />
       <Route path="/clients" element={<PrivateRoute><AdminLayout><Clients /></AdminLayout></PrivateRoute>} />
