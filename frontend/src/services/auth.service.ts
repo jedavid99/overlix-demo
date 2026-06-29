@@ -1,10 +1,10 @@
 import api from './api';
 import { logger } from '@/utils/logger';
 
-export const login = async (email: string, password: string, codigoEmpresa: string) => {
+export const login = async (email: string, contraseña: string, codigoEmpresa: string) => {
   const payload = {
     email,
-    password: password,
+    contraseña: contraseña,
     codigo_empresa: codigoEmpresa
   };
 

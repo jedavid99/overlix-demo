@@ -7,7 +7,7 @@ interface User {
 }
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, codigoEmpresa: string) => Promise<void>;
+  login: (email: string, contraseña: string, codigoEmpresa: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -38,9 +38,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     initAuth();
   }, []);
-  const login = async (email: string, password: string, codigoEmpresa: string) => {
+  const login = async (email: string, contraseña: string, codigoEmpresa: string) => {
     logger.log('AuthContext.login llamado con:', { email, codigoEmpresa });
-    const response = await loginService(email, password, codigoEmpresa);
+    const response = await loginService(email, contraseña, codigoEmpresa);
     logger.log('Respuesta completa del login:', response);
     
     // El backend envuelve la respuesta en {success: true, data: {token, refreshToken, usuario}}
