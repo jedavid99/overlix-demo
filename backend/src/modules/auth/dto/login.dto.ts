@@ -7,7 +7,7 @@ export class LoginDto {
 
   @IsNotEmpty()
   @IsString()
-  password: string;
+  contraseña: string;
 
   @IsNotEmpty()
   @IsString()
