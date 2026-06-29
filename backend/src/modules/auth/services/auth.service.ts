@@ -227,7 +227,7 @@ export class AuthService {
       }
 
       // Verify password
-      const isPasswordValid = await bcrypt.compare(loginDto.contraseña, user.contraseña);
+      const isPasswordValid = await bcrypt.compare(loginDto.contraseña, user['contraseña']);
 
       if (!isPasswordValid) {
         throw new UnauthorizedException('Credenciales inválidas');
@@ -307,7 +307,7 @@ export class AuthService {
       }
 
       // Verify password
-      const isPasswordValid = await bcrypt.compare(adminLoginDto.password, user.contraseña);
+      const isPasswordValid = await bcrypt.compare(adminLoginDto.password, user['contraseña']);
 
       if (!isPasswordValid) {
         throw new UnauthorizedException('Credenciales de admin inválidas');
