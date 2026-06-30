@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { Clock, CheckCircle } from 'lucide-react';
+import React from 'react';
+import { Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { estadoOptions } from './RepairEdit.types';
@@ -14,22 +14,6 @@ export const EditStatusForm: React.FC<EditStatusFormProps> = ({
   formData,
   setFormData,
 }) => {
-  const estadoRef = useRef<HTMLDivElement>(null);
-  const [isEstadoOpen, setIsEstadoOpen] = React.useState(false);
-
-  // Cerrar dropdown al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (estadoRef.current && !estadoRef.current.contains(event.target as Node)) {
-        setIsEstadoOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const CurrentIcon = estadoOptions.find(o => o.value === formData.estado)?.icon || estadoOptions[0].icon;
-
   return (
     <Card>
       <CardHeader>
@@ -39,41 +23,23 @@ export const EditStatusForm: React.FC<EditStatusFormProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Estado - Custom Dropdown */}
+        {/* Estado - Select nativo */}
         <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-1">Estado</label>
-          <div ref={estadoRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setIsEstadoOpen(!isEstadoOpen)}
-              className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2">
-                <CurrentIcon className="h-4 w-4 text-muted-foreground" />
-                <span>{estadoOptions.find(o => o.value === formData.estado)?.label || 'Seleccionar estado'}</span>
-              </div>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </button>
-
-            {isEstadoOpen && (
-              <div className="absolute z-50 w-full mt-1 bg-background border border-input rounded-md shadow-lg max-h-60 overflow-auto">
-                {estadoOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => {
-                      setFormData({ ...formData, estado: option.value });
-                      setIsEstadoOpen(false);
-                    }}
-                    className="w-full px-3 py-2 text-sm flex items-center gap-2 hover:bg-accent focus:bg-accent focus:outline-none"
-                  >
-                    <option.icon className="h-4 w-4 text-muted-foreground" />
-                    <span>{option.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <label htmlFor="estado-select" className="block text-sm font-medium text-muted-foreground mb-1">
+            Estado
+          </label>
+          <select
+            id="estado-select"
+            value={formData.estado}
+            onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
+            className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          >
+            {estadoOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Problema Reportado */}
