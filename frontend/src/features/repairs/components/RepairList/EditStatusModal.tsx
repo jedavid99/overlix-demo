@@ -72,7 +72,7 @@ export const EditStatusModal: React.FC<EditStatusModalProps> = ({
 
     try {
       setIsSaving(true);
-      await repairService.update(repairId, { estado: selectedStatus });
+      await repairService.updateStatus(repairId, { estado: selectedStatus });
       toast({ title: 'Éxito', description: 'Estado actualizado correctamente' });
       onSuccess();
       onClose();
