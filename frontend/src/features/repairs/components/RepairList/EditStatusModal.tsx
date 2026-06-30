@@ -45,21 +45,25 @@ export const EditStatusModal: React.FC<EditStatusModalProps> = ({
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Resetear selección al abrir
+  // Resetear selección al abrir y asegurar que el valor sea válido
   useEffect(() => {
     if (open) {
-      setSelectedStatus(currentStatus);
+      // Verificar que el estado actual esté en las opciones, si no, usar el primero
+      const exists = statusOptions.some(opt => opt.value === currentStatus);
+      setSelectedStatus(exists ? currentStatus : statusOptions[0].value);
     }
   }, [open, currentStatus]);
 
   const currentOption = statusOptions.find(opt => opt.value === selectedStatus);
   const CurrentIcon = currentOption?.icon || statusOptions[0].icon;
 
-  // Estados permitidos desde el estado actual
+  // Estados permitidos desde el actual
   const allowedTransitions = validTransitions[currentStatus] || [];
-  const availableOptions = statusOptions.filter(opt =>
-    opt.value === currentStatus || allowedTransitions.includes(opt.value)
-  );
+
+  // Función para determinar si una opción está habilitada
+  const isOptionEnabled = (value: string) => {
+    return value === currentStatus || allowedTransitions.includes(value);
+  };
 
   const handleSave = async () => {
     if (selectedStatus === currentStatus) {
@@ -67,7 +71,8 @@ export const EditStatusModal: React.FC<EditStatusModalProps> = ({
       return;
     }
 
-    if (!allowedTransitions.includes(selectedStatus)) {
+    // Validar transición
+    if (!isOptionEnabled(selectedStatus)) {
       toast({
         title: 'Error',
         description: `No puedes cambiar de "${currentStatus}" a "${selectedStatus}". Transición no válida.`,
@@ -125,18 +130,23 @@ export const EditStatusModal: React.FC<EditStatusModalProps> = ({
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
             >
-              {availableOptions.map((option) => (
-                <option
-                  key={option.value}
-                  value={option.value}
-                  disabled={!allowedTransitions.includes(option.value) && option.value !== currentStatus}
-                >
-                  {option.label}
-                </option>
-              ))}
+              {statusOptions.map((option) => {
+                const enabled = isOptionEnabled(option.value);
+                return (
+                  <option
+                    key={option.value}
+                    value={option.value}
+                    disabled={!enabled}
+                  >
+                    {option.label}
+                  </option>
+                );
+              })}
             </select>
             <p className="text-xs text-muted-foreground mt-1">
-              Solo puedes cambiar a estados permitidos por la transición
+              {allowedTransitions.length > 0
+                ? `Solo puedes cambiar a: ${allowedTransitions.map(v => statusOptions.find(o => o.value === v)?.label).join(', ')}`
+                : 'No puedes cambiar de estado (estado final)'}
             </p>
           </div>
         </div>
@@ -152,4 +162,4 @@ export const EditStatusModal: React.FC<EditStatusModalProps> = ({
       </DialogContent>
     </Dialog>
   );
-}; 
+};
