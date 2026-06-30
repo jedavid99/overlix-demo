@@ -432,8 +432,12 @@ export class RepairsService {
     const client = await this.pool.connect();
 
     try {
+      this.logger.log(`updateStatus - Starting with estado: ${estado}`);
+
       // Convert English status to Spanish for database
       const estadoSpanish = STATUS_ENGLISH_TO_SPANISH[estado] || estado;
+
+      this.logger.log(`updateStatus - Input estado: ${estado}, Converted estadoSpanish: ${estadoSpanish}`);
 
       // Check if repair exists
       const existingRepair = await client.query(
@@ -446,6 +450,7 @@ export class RepairsService {
       }
 
       const repair = existingRepair.rows[0];
+      this.logger.log(`updateStatus - Current repair.estado: ${repair.estado}`);
 
       // Validate state transitions if changing to a different state
       if (estadoSpanish !== repair.estado) {
@@ -458,8 +463,14 @@ export class RepairsService {
           [RepairStatus.CANCELLED]: [], // Terminal state
         };
 
+        this.logger.log(`updateStatus - validTransitions keys: ${Object.keys(validTransitions)}`);
+        this.logger.log(`updateStatus - repair.estado in validTransitions: ${repair.estado in validTransitions}`);
+
         const allowedTransitions = validTransitions[repair.estado] || [];
+        this.logger.log(`updateStatus - allowedTransitions: ${JSON.stringify(allowedTransitions)}`);
+
         if (!allowedTransitions.includes(estadoSpanish)) {
+          this.logger.error(`Transición inválida - repair.estado: ${repair.estado}, estadoSpanish: ${estadoSpanish}, allowed: ${JSON.stringify(allowedTransitions)}`);
           throw new BadRequestException(
             `Transición de estado inválida: ${repair.estado} -> ${estadoSpanish}`,
           );
@@ -467,6 +478,7 @@ export class RepairsService {
       }
 
       // Update status
+      this.logger.log(`updateStatus - Updating to estadoSpanish: ${estadoSpanish}`);
       const result = await client.query(
         'UPDATE repairs SET estado = $1, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = $2 AND empresa_id = $3 RETURNING *',
         [estadoSpanish, id, user.empresaId],
@@ -474,10 +486,14 @@ export class RepairsService {
 
       // Convert Spanish status back to English for response
       const updatedRepair = result.rows[0];
+      this.logger.log(`updateStatus - Updated repair.estado: ${updatedRepair.estado}`);
+
       const repairWithEnglishStatus = {
         ...updatedRepair,
         estado: STATUS_SPANISH_TO_ENGLISH[updatedRepair.estado] || updatedRepair.estado,
       };
+
+      this.logger.log(`updateStatus - Returning estado: ${repairWithEnglishStatus.estado}`);
 
       // Log audit
       await this.logAudit(user.id, user.empresaId, 'actualizar', 'reparaciones', 'repairs', id, `Se cambió estado de reparación: ${repair.numero_reparacion} de ${repair.estado} a ${estadoSpanish}`);
@@ -487,6 +503,9 @@ export class RepairsService {
         message: 'Estado actualizado',
         data: repairWithEnglishStatus,
       };
+    } catch (error) {
+      this.logger.error(`updateStatus - Error: ${error.message}`, error.stack);
+      throw error;
     } finally {
       client.release();
     }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
 import { RepairsService } from '../services/repairs.service';
 import { CreateRepairDto } from '../dto/create-repair.dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -67,6 +67,10 @@ export class RepairsController {
     @Body('estado') estado: string,
     @CurrentUser() user: CurrentUserData,
   ) {
+    console.log(`Controller updateStatus - id: ${id}, estado: ${estado}, user: ${user.id}`);
+    if (!estado) {
+      throw new BadRequestException('Estado es requerido');
+    }
     return this.repairsService.updateStatus(id, estado, user);
   }
 
