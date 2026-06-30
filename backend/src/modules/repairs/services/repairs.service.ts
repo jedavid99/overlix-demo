@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Inject, Logger } from '@nestjs/common';
 import { Pool } from 'pg';
-import { CreateRepairDto, RepairStatus, RepairPriority } from '../dto/create-repair.dto';
+import { CreateRepairDto, RepairStatus, RepairPriority, STATUS_ENGLISH_TO_SPANISH, STATUS_SPANISH_TO_ENGLISH } from '../dto/create-repair.dto';
 import { CurrentUserData } from '../../../common/decorators/current-user.decorator';
 
 @Injectable()
@@ -120,10 +120,13 @@ export class RepairsService {
       const params: (string | number)[] = [user.empresaId];
       let paramCount = 1;
 
-      if (estado) {
+      // Convert English status to Spanish for database query
+      const estadoSpanish = estado ? STATUS_ENGLISH_TO_SPANISH[estado] || estado : undefined;
+
+      if (estadoSpanish) {
         paramCount++;
         whereClause += ` AND r.estado = $${paramCount}`;
-        params.push(estado);
+        params.push(estadoSpanish);
       }
 
       if (cliente_id) {
@@ -186,10 +189,16 @@ export class RepairsService {
 
       const totalPages = Math.ceil(total / limit);
 
+      // Convert Spanish statuses to English for frontend
+      const reparacionesWithEnglishStatus = result.rows.map((repair: any) => ({
+        ...repair,
+        estado: STATUS_SPANISH_TO_ENGLISH[repair.estado] || repair.estado,
+      }));
+
       return {
         success: true,
         data: {
-          reparaciones: result.rows,
+          reparaciones: reparacionesWithEnglishStatus,
           total,
           pagina: page,
           total_paginas: totalPages,
@@ -219,9 +228,16 @@ export class RepairsService {
         throw new NotFoundException('Reparación no encontrada');
       }
 
+      // Convert Spanish status to English for frontend
+      const repair = result.rows[0];
+      const repairWithEnglishStatus = {
+        ...repair,
+        estado: STATUS_SPANISH_TO_ENGLISH[repair.estado] || repair.estado,
+      };
+
       return {
         success: true,
-        data: result.rows[0],
+        data: repairWithEnglishStatus,
       };
     } finally {
       client.release();
@@ -416,6 +432,9 @@ export class RepairsService {
     const client = await this.pool.connect();
 
     try {
+      // Convert English status to Spanish for database
+      const estadoSpanish = STATUS_ENGLISH_TO_SPANISH[estado] || estado;
+
       // Check if repair exists
       const existingRepair = await client.query(
         'SELECT * FROM repairs WHERE id = $1 AND empresa_id = $2',
@@ -429,7 +448,7 @@ export class RepairsService {
       const repair = existingRepair.rows[0];
 
       // Validate state transitions if changing to a different state
-      if (estado !== repair.estado) {
+      if (estadoSpanish !== repair.estado) {
         const validTransitions: Record<string, string[]> = {
           [RepairStatus.DIAGNOSTIC]: [RepairStatus.IN_PROGRESS, RepairStatus.CANCELLED],
           [RepairStatus.IN_PROGRESS]: [RepairStatus.WAITING_PARTS, RepairStatus.TESTING, RepairStatus.COMPLETED, RepairStatus.CANCELLED],
@@ -440,9 +459,9 @@ export class RepairsService {
         };
 
         const allowedTransitions = validTransitions[repair.estado] || [];
-        if (!allowedTransitions.includes(estado)) {
+        if (!allowedTransitions.includes(estadoSpanish)) {
           throw new BadRequestException(
-            `Transición de estado inválida: ${repair.estado} -> ${estado}`,
+            `Transición de estado inválida: ${repair.estado} -> ${estadoSpanish}`,
           );
         }
       }
@@ -450,16 +469,23 @@ export class RepairsService {
       // Update status
       const result = await client.query(
         'UPDATE repairs SET estado = $1, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = $2 AND empresa_id = $3 RETURNING *',
-        [estado, id, user.empresaId],
+        [estadoSpanish, id, user.empresaId],
       );
 
+      // Convert Spanish status back to English for response
+      const updatedRepair = result.rows[0];
+      const repairWithEnglishStatus = {
+        ...updatedRepair,
+        estado: STATUS_SPANISH_TO_ENGLISH[updatedRepair.estado] || updatedRepair.estado,
+      };
+
       // Log audit
-      await this.logAudit(user.id, user.empresaId, 'actualizar', 'reparaciones', 'repairs', id, `Se cambió estado de reparación: ${repair.numero_reparacion} de ${repair.estado} a ${estado}`);
+      await this.logAudit(user.id, user.empresaId, 'actualizar', 'reparaciones', 'repairs', id, `Se cambió estado de reparación: ${repair.numero_reparacion} de ${repair.estado} a ${estadoSpanish}`);
 
       return {
         success: true,
         message: 'Estado actualizado',
-        data: result.rows[0],
+        data: repairWithEnglishStatus,
       };
     } finally {
       client.release();

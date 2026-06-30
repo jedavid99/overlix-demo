@@ -10,6 +10,38 @@ export enum RepairStatus {
   CANCELLED = 'Irreparable',
 }
 
+// English status values for frontend compatibility
+export enum RepairStatusEnglish {
+  PENDING = 'pending',
+  DIAGNOSTIC = 'diagnostic',
+  IN_PROGRESS = 'in_progress',
+  WAITING_PARTS = 'waiting_parts',
+  READY = 'ready',
+  DELIVERED = 'delivered',
+  CANCELLED = 'cancelled',
+}
+
+// Mapping from English to Spanish
+export const STATUS_ENGLISH_TO_SPANISH: Record<string, string> = {
+  [RepairStatusEnglish.PENDING]: RepairStatus.DIAGNOSTIC,
+  [RepairStatusEnglish.DIAGNOSTIC]: RepairStatus.DIAGNOSTIC,
+  [RepairStatusEnglish.IN_PROGRESS]: RepairStatus.IN_PROGRESS,
+  [RepairStatusEnglish.WAITING_PARTS]: RepairStatus.WAITING_PARTS,
+  [RepairStatusEnglish.READY]: RepairStatus.TESTING,
+  [RepairStatusEnglish.DELIVERED]: RepairStatus.COMPLETED,
+  [RepairStatusEnglish.CANCELLED]: RepairStatus.CANCELLED,
+};
+
+// Mapping from Spanish to English
+export const STATUS_SPANISH_TO_ENGLISH: Record<string, string> = {
+  [RepairStatus.DIAGNOSTIC]: RepairStatusEnglish.DIAGNOSTIC,
+  [RepairStatus.IN_PROGRESS]: RepairStatusEnglish.IN_PROGRESS,
+  [RepairStatus.WAITING_PARTS]: RepairStatusEnglish.WAITING_PARTS,
+  [RepairStatus.TESTING]: RepairStatusEnglish.READY,
+  [RepairStatus.COMPLETED]: RepairStatusEnglish.DELIVERED,
+  [RepairStatus.CANCELLED]: RepairStatusEnglish.CANCELLED,
+};
+
 export enum RepairPriority {
   LOW = 'low',
   MEDIUM = 'medium',
