@@ -29,7 +29,7 @@ export const repairService = {
 
   // Cambiar estado de una reparación
   updateStatus: (id: string, data: RepairStatusUpdate): Promise<Repair> => {
-    return api.patch(`/repairs/${id}/status`, data).then(res => res.data);
+    return api.put(`/repairs/${id}/estado`, data).then(res => res.data);
   },
 
   // Completar una reparación
