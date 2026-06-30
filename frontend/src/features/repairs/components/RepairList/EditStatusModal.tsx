@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
-import { Search, Wrench, Clock, CheckCircle, Package, XCircle } from 'lucide-react';
+import { Search, Wrench, Clock, CheckCircle, Package, XCircle, ChevronDown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { repairService } from '@/services/repairService';
 
@@ -13,7 +13,6 @@ interface EditStatusModalProps {
   onSuccess: () => void;
 }
 
-// Estados en inglés (coinciden con el backend)
 const statusOptions = [
   { value: 'pending', label: 'Pendiente', icon: Search },
   { value: 'diagnostic', label: 'Diagnóstico', icon: Search },
@@ -24,7 +23,6 @@ const statusOptions = [
   { value: 'cancelled', label: 'Cancelado', icon: XCircle },
 ];
 
-// Transiciones válidas (claves en inglés)
 const validTransitions: Record<string, string[]> = {
   pending: ['diagnostic', 'cancelled'],
   diagnostic: ['in_progress', 'cancelled'],
@@ -44,25 +42,42 @@ export const EditStatusModal: React.FC<EditStatusModalProps> = ({
 }) => {
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
   const [isSaving, setIsSaving] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Resetear selección al abrir y asegurar que el valor sea válido
+  // Resetear selección al abrir
   useEffect(() => {
     if (open) {
-      // Verificar que el estado actual esté en las opciones, si no, usar el primero
       const exists = statusOptions.some(opt => opt.value === currentStatus);
       setSelectedStatus(exists ? currentStatus : statusOptions[0].value);
+      setIsOpen(false); // cerrar dropdown al abrir modal
     }
   }, [open, currentStatus]);
 
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const currentOption = statusOptions.find(opt => opt.value === selectedStatus);
   const CurrentIcon = currentOption?.icon || statusOptions[0].icon;
-
-  // Estados permitidos desde el actual
   const allowedTransitions = validTransitions[currentStatus] || [];
 
-  // Función para determinar si una opción está habilitada
   const isOptionEnabled = (value: string) => {
     return value === currentStatus || allowedTransitions.includes(value);
+  };
+
+  const handleSelect = (value: string) => {
+    if (isOptionEnabled(value)) {
+      setSelectedStatus(value);
+      setIsOpen(false);
+    }
   };
 
   const handleSave = async () => {
@@ -71,11 +86,10 @@ export const EditStatusModal: React.FC<EditStatusModalProps> = ({
       return;
     }
 
-    // Validar transición
     if (!isOptionEnabled(selectedStatus)) {
       toast({
         title: 'Error',
-        description: `No puedes cambiar de "${currentStatus}" a "${selectedStatus}". Transición no válida.`,
+        description: `No puedes cambiar de "${currentStatus}" a "${selectedStatus}".`,
         variant: 'destructive',
       });
       return;
@@ -84,12 +98,7 @@ export const EditStatusModal: React.FC<EditStatusModalProps> = ({
     try {
       setIsSaving(true);
       await repairService.update(repairId, { estado: selectedStatus });
-
-      toast({
-        title: 'Éxito',
-        description: 'Estado actualizado correctamente',
-      });
-
+      toast({ title: 'Éxito', description: 'Estado actualizado correctamente' });
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -111,6 +120,7 @@ export const EditStatusModal: React.FC<EditStatusModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Estado actual (solo lectura) */}
           <div>
             <label className="block text-sm font-medium text-muted-foreground mb-2">
               Estado Actual
@@ -121,28 +131,51 @@ export const EditStatusModal: React.FC<EditStatusModalProps> = ({
             </div>
           </div>
 
+          {/* Nuevo estado - Custom Dropdown */}
           <div>
             <label className="block text-sm font-medium text-muted-foreground mb-2">
               Nuevo Estado
             </label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-            >
-              {statusOptions.map((option) => {
-                const enabled = isOptionEnabled(option.value);
-                return (
-                  <option
-                    key={option.value}
-                    value={option.value}
-                    disabled={!enabled}
-                  >
-                    {option.label}
-                  </option>
-                );
-              })}
-            </select>
+            <div ref={dropdownRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <CurrentIcon className="h-4 w-4 text-muted-foreground" />
+                  <span>{currentOption?.label || 'Seleccionar'}</span>
+                </div>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isOpen && (
+                <div className="absolute z-[999] w-full mt-1 bg-background border border-input rounded-md shadow-lg max-h-60 overflow-auto">
+                  {statusOptions.map((option) => {
+                    const enabled = isOptionEnabled(option.value);
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handleSelect(option.value)}
+                        disabled={!enabled}
+                        className={`
+                          w-full px-3 py-2 text-sm flex items-center gap-2 
+                          hover:bg-accent focus:bg-accent focus:outline-none
+                          ${!enabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                        `}
+                      >
+                        <option.icon className="h-4 w-4 text-muted-foreground" />
+                        <span>{option.label}</span>
+                        {option.value === selectedStatus && (
+                          <span className="ml-auto text-xs text-muted-foreground">✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               {allowedTransitions.length > 0
                 ? `Solo puedes cambiar a: ${allowedTransitions.map(v => statusOptions.find(o => o.value === v)?.label).join(', ')}`
